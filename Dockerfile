@@ -1,17 +1,28 @@
-# Use Java 17 (required for Spring Boot)
+# Use Java 17
 FROM eclipse-temurin:17-jdk-jammy
 
-# Set working directory inside container
+# Set working directory
 WORKDIR /app
 
-# Copy project files
-COPY . .
+# Copy pom and mvnw first (for caching)
+COPY pom.xml .
+COPY mvnw .
+COPY .mvn .mvn
 
-# Build the Spring Boot application
+# Download dependencies
+RUN ./mvnw dependency:go-offline
+
+# Copy source code
+COPY src src
+
+# Build the application
 RUN ./mvnw clean package -DskipTests
 
-# Expose port (Render uses PORT env variable)
+# Copy the generated jar explicitly
+RUN cp target/*.jar app.jar
+
+# Expose port
 EXPOSE 8080
 
-# Run the jar file
-CMD ["java", "-jar", "target/*.jar"]
+# Run the application
+ENTRYPOINT ["java", "-jar", "app.jar"]
